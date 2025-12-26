@@ -8,7 +8,6 @@ void main() {
   runMenuLoop(orders);
 }
 
-
 List<Order> loadInitialOrders() {
   String jsonString = '''
 [
@@ -21,12 +20,11 @@ List<Order> loadInitialOrders() {
   return jsonData.map((e) => Order.fromJson(e)).toList();
 }
 
-
 void runMenuLoop(List<Order> orders) {
   while (true) {
     showMenu();
     stdout.write('Chọn chức năng: ');
-    String choice = stdin.readLineSync()!;
+    String choice = stdin.readLineSync() ?? '';
 
     switch (choice) {
       case '1':
@@ -39,15 +37,17 @@ void runMenuLoop(List<Order> orders) {
         searchOrders(orders);
         break;
       case '4':
-        saveOrdersToFile(orders);
-        print('Thoát chương trình.');
-        return;
+        if (confirmExit()) {
+          saveOrdersToFile(orders);
+          print('Thoát chương trình.');
+          return;
+        }
+        break;
       default:
         print('❌ Lựa chọn không hợp lệ.');
     }
   }
 }
-
 
 void showMenu() {
   print('\n========== MENU ==========');
@@ -57,7 +57,6 @@ void showMenu() {
   print('4. Lưu file & Thoát');
   print('==========================');
 }
-
 
 void displayOrders(List<Order> orders) {
   if (orders.isEmpty) {
@@ -73,34 +72,30 @@ void displayOrders(List<Order> orders) {
   }
 }
 
-
 void addOrder(List<Order> orders) {
   print('\n--- Nhập đơn hàng mới ---');
 
-  stdout.write('Item: ');
-  String item = stdin.readLineSync()!;
+  String item;
+  while (true) {
+    item = readNonEmptyString('Item: ');
+    bool exists = orders.any((o) => o.item.toLowerCase() == item.toLowerCase());
 
-  stdout.write('Item Name: ');
-  String itemName = stdin.readLineSync()!;
+    if (!exists) break;
+    print('❌ Item đã tồn tại. Vui lòng nhập Item khác.');
+  }
 
-  stdout.write('Price: ');
-  double price = double.parse(stdin.readLineSync()!);
-
-  stdout.write('Currency: ');
-  String currency = stdin.readLineSync()!;
-
-  stdout.write('Quantity: ');
-  int quantity = int.parse(stdin.readLineSync()!);
+  String itemName = readNonEmptyString('Item Name: ');
+  double price = readDouble('Price: ');
+  String currency = readNonEmptyString('Currency: ');
+  int quantity = readInt('Quantity: ');
 
   orders.add(Order(item: item, itemName: itemName, price: price, currency: currency, quantity: quantity));
 
-  print('✔ Thêm thành công.');
+  print('✔ Thêm đơn hàng thành công.');
 }
 
-
 void searchOrders(List<Order> orders) {
-  stdout.write('\nNhập tên sản phẩm cần tìm: ');
-  String keyword = stdin.readLineSync()!.toLowerCase();
+  String keyword = readNonEmptyString('\nNhập tên sản phẩm cần tìm: ').toLowerCase();
 
   var results = orders.where((o) => o.itemName.toLowerCase().contains(keyword)).toList();
 
@@ -111,10 +106,57 @@ void searchOrders(List<Order> orders) {
   }
 }
 
+bool confirmExit() {
+  while (true) {
+    stdout.write('Bạn có chắc chắn muốn thoát? (y/n): ');
+    String answer = stdin.readLineSync()?.toLowerCase() ?? '';
+
+    if (answer == 'y') return true;
+    if (answer == 'n') return false;
+
+    print('❌ Vui lòng nhập y hoặc n.');
+  }
+}
 
 void saveOrdersToFile(List<Order> orders) {
   File file = File('order.json');
   var jsonList = orders.map((o) => o.toJson()).toList();
   file.writeAsStringSync(jsonEncode(jsonList));
   print('✔ Đã lưu file order.json');
+}
+
+String readNonEmptyString(String label) {
+  while (true) {
+    stdout.write(label);
+    String? input = stdin.readLineSync();
+
+    if (input != null && input.trim().isNotEmpty) {
+      return input.trim();
+    }
+    print('❌ Không được để trống. Vui lòng nhập lại.');
+  }
+}
+
+double readDouble(String label) {
+  while (true) {
+    stdout.write(label);
+    double? value = double.tryParse(stdin.readLineSync() ?? '');
+
+    if (value != null && value > 0) {
+      return value;
+    }
+    print('❌ Vui lòng nhập số > 0.');
+  }
+}
+
+int readInt(String label) {
+  while (true) {
+    stdout.write(label);
+    int? value = int.tryParse(stdin.readLineSync() ?? '');
+
+    if (value != null && value > 0) {
+      return value;
+    }
+    print('❌ Vui lòng nhập số nguyên > 0.');
+  }
 }
